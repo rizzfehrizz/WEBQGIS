@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <!-- Add Open Sans font -->
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="./resources/ol.css">
+        <link rel="stylesheet" href="resources/fontawesome-all.min.css">
+        <link href="resources/photon-geocoder-autocomplete.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="./resources/ol-layerswitcher.css">
+        <link rel="stylesheet" href="./resources/qgis2web.css">
+        <style>
+        html, body {
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            font-family: 'Open Sans', sans-serif;
+            height: 100%;
+        }
+        /* Header styling */
+        .map-header {
+            background-color: #1a3f32; /* Obsidian green */
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 10;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-title {
+            font-weight: 700;
+            font-size: 1.4rem;
+            letter-spacing: 0.5px;
+        }
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-placeholder {
+            width: 40px;
+            height: 40px;
+            background: #2c5b48;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .header-controls {
+            display: flex;
+            gap: 15px;
+        }
+        .header-btn {
+            background: #2c5b48;
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Open Sans', sans-serif;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .header-btn:hover {
+            background: #3a735a;
+        }
+        
+        /* Adjust map container */
+        #map-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        #map {
+            flex: 1;
+            width: 100%;
+        }
+        
+        .ol-control > * {
+            background-color: #f8f8f8!important;
+            color: #444444!important;
+            border-radius: 0px;
+        }
+        .ol-attribution a, .gcd-gl-input::placeholder, .search-layer-input-search::placeholder {
+            color: #444444!important;
+        }
+        .search-layer-input-search {
+            background-color: #f8f8f8!important;
+        }
+        .ol-control > *:focus, .ol-control >*:hover {
+            background-color: rgba(248, 248, 248, 0.7)!important;
+        } 
+        .ol-control {
+            background-color: rgba(255,255,255,.4) !important;
+            padding: 2px !important;
+        } 
+        /* Popup panels */
+        .popup-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+            z-index: 200;
+            width: 450px;
+            max-width: 90%;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .popup-panel.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .panel-header {
+            background: linear-gradient(135deg, #1a3f32 0%, #0d291f 100%);
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-title {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+        
+        .close-panel {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .close-panel:hover {
+            transform: rotate(90deg);
+        }
+        
+        .panel-content {
+            padding: 25px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .panel-content h3 {
+            color: #1a3f32;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .panel-content p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .panel-content ul {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel-content li {
+            margin-bottom: 8px;
+        }
+        
+        .share-options {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .share-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .share-btn:hover {
+            background: #e8f5e9;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .share-btn i {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #1a3f32;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 150;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Export options */
+        .export-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .export-option {
+            background: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .export-option:hover {
+            background: #e8f5e9;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .export-option i {
+            font-size: 2rem;
+            color: #1a3f32;
+            margin-bottom: 10px;
+        }
+        
+        </style>
+
+        <style>
+        html, body, #map {
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>Peta Potensi Lahan Agrowisata Kabupaten Wonosobo</title>
+    </head>
+    <body>
+        <div id="map-container">
+            <header class="map-header">
+                <div class="header-logo">
+                    <div class="logo-placeholder">🌱</div>
+                    <div class="header-title">Peta Potensi Lahan Agrowisata Kabupaten Wonosobo</div>
+                </div>
+                <div class="header-controls">
+                        <button class="header-btn" id="info-btn">
+                            <i class="fas fa-info-circle"></i> Info
+                        </button>
+                        <button class="header-btn" id="export-btn">
+                            <i class="fas fa-download"></i> Ekspor
+                        </button>
+                        <button class="header-btn" id="share-btn">
+                            <i class="fas fa-share-alt"></i> Bagikan
+                        </button>
+                </div>
+            </header>
+            <div id="map">
+                <div id="popup" class="ol-popup">
+                    <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+                    <div id="popup-content"></div>
+                </div>
+            </div>
+        </div>
+         <!-- Info Panel -->
+    <div class="popup-panel" id="info-panel">
+        <div class="panel-header">
+            <div class="panel-title">Tentang Peta Ini</div>
+            <button class="close-panel">&times;</button>
+        </div>
+        <div class="panel-content">
+            <h3>Peta Potensi Lahan Agrowisata Kabupaten Wonosobo</h3>
+            <p>Peta ini merupakan hasil analisis kesesuaian lahan untuk pengembangan agrowisata di Kabupaten Wonosobo. Data yang digunakan meliputi:</p>
+            <ul>
+                <li>Kesesuaian lahan untuk tanaman unggulan (kopi, carica, teh, durian)</li>
+                <li>Fisik Alam dan Klimatologi</li>
+                <li>Infrastruktur dan Jaringan jalan</li>
+                <li>Kebencanaan</li>
+            </ul>
+            <p>Peta ini dapat digunakan sebagai acuan dalam perencanaan pengembangan agrowisata dan identifikasi lokasi potensial untuk investasi di sektor agrowisata.</p>
+            <h3>Sumber Data</h3>
+            <p>Data yang digunakan dalam peta ini bersumber dari:</p>
+            <ul>
+                <li>Dinas Pekerjaan Umum dan Penataan Ruang Kabupaten Wonosobo</li>
+                <li>Badan Penanggulangan Bencana Daerah Kabupaten Wonosobo</li>
+                <li>Landsat: Land Surface Temperature</li>
+                <li>Badan Meteorologi, Klimatologi, dan Geofisika</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Export Panel -->
+    <div class="popup-panel" id="export-panel">
+        <div class="panel-header">
+            <div class="panel-title">Ekspor Peta</div>
+            <button class="close-panel">&times;</button>
+        </div>
+        <div class="panel-content">
+            <h3>Pilih Format Ekspor</h3>
+            <p>Silakan pilih format yang diinginkan untuk mengekspor peta saat ini:</p>
+            
+            <div class="export-options">
+                <div class="export-option">
+                    <i class="fas fa-file-pdf"></i>
+                    <div>PDF</div>
+                    <small>Format dokumen</small>
+                </div>
+                <div class="export-option">
+                    <i class="fas fa-file-image"></i>
+                    <div>Gambar (PNG)</div>
+                    <small>Resolusi tinggi</small>
+                </div>
+                <div class="export-option">
+                    <i class="fas fa-file-excel"></i>
+                    <div>Data Excel</div>
+                    <small>Data tabular</small>
+                </div>
+                <div class="export-option">
+                    <i class="fas fa-map"></i>
+                    <div>Shapefile</div>
+                    <small>Data spasial</small>
+                </div>
+            </div>
+            
+            <h3>Pengaturan Ekspor</h3>
+            <p>
+                <label><input type="checkbox" checked> Sertakan legenda</label>
+            </p>
+            <p>
+                <label><input type="checkbox" checked> Sertakan skala peta</label>
+            </p>
+            <p>
+                <label><input type="checkbox"> Sertakan grid koordinat</label>
+            </p>
+            
+            <button class="header-btn" style="width:100%;margin-top:20px;">
+                <i class="fas fa-download"></i> Unduh Sekarang
+            </button>
+        </div>
+    </div>
+
+    <!-- Share Panel -->
+    <div class="popup-panel" id="share-panel">
+        <div class="panel-header">
+            <div class="panel-title">Bagikan Peta</div>
+            <button class="close-panel">&times;</button>
+        </div>
+        <div class="panel-content">
+            <h3>Bagikan Peta Ini</h3>
+            <p>Salin tautan di bawah untuk membagikan peta ini dengan orang lain:</p>
+            
+            <div style="display:flex;margin:20px 0;">
+                <input type="text" value="https:biy.ly/TA-Agrowisata" style="flex:1;padding:10px;border:1px solid #ddd;border-radius:4px 0 0 4px;">
+                <button style="background:#1a3f32;color:white;border:none;padding:0 15px;border-radius:0 4px 4px 0;cursor:pointer;">
+                    Salin
+                </button>
+            </div>
+            <h3>Kode QR</h3>
+            <img src="images/qrwis.png" alt="QR Website" width="200" height="200">
+        </div>
+    </div>
+
+    <!-- Overlay -->
+    <div class="overlay" id="panel-overlay"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        Tugas Akhir Perencananaan Tata Ruang dan Pertanahan &copy; 2025 | Sistem Informasi Geografis Potensi Agrowisata
+    </footer>
+
+    <script>
+        // Panel functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get elements
+            const infoBtn = document.getElementById('info-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const shareBtn = document.getElementById('share-btn');
+            const infoPanel = document.getElementById('info-panel');
+            const exportPanel = document.getElementById('export-panel');
+            const sharePanel = document.getElementById('share-panel');
+            const overlay = document.getElementById('panel-overlay');
+            const closeButtons = document.querySelectorAll('.close-panel');
+            
+            // Show panel function
+            function showPanel(panel) {
+                // Hide all panels
+                document.querySelectorAll('.popup-panel').forEach(p => {
+                    p.classList.remove('active');
+                });
+                
+                // Show selected panel and overlay
+                panel.classList.add('active');
+                overlay.classList.add('active');
+            }
+            
+            // Hide all panels
+            function hidePanels() {
+                document.querySelectorAll('.popup-panel').forEach(panel => {
+                    panel.classList.remove('active');
+                });
+                overlay.classList.remove('active');
+            }
+            
+            // Event listeners for buttons
+            infoBtn.addEventListener('click', () => showPanel(infoPanel));
+            exportBtn.addEventListener('click', () => showPanel(exportPanel));
+            shareBtn.addEventListener('click', () => showPanel(sharePanel));
+            
+            // Close panels when close button or overlay is clicked
+            closeButtons.forEach(btn => {
+                btn.addEventListener('click', hidePanels);
+            });
+            
+            overlay.addEventListener('click', hidePanels);
+            
+            // Close panel when pressing Esc key
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') hidePanels();
+            });
+            
+            // Demo map animation
+            const markers = document.querySelectorAll('.map-marker');
+            markers.forEach(marker => {
+                // Random animation delay
+                const delay = Math.random() * 2;
+                marker.style.animation = `pulse 2s ${delay}s infinite`;
+            });
+            
+            // Add CSS for animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulse {
+                    0% { transform: translate(-50%, -50%) scale(1); }
+                    50% { transform: translate(-50%, -50%) scale(1.2); }
+                    100% { transform: translate(-50%, -50%) scale(1); }
+                }
+                .map-marker { animation: pulse 2s infinite; }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+        <script src="resources/qgis2web_expressions.js"></script>
+        <script src="resources/proj4.js"></script>
+        <script>proj4.defs('EPSG:32749','+proj=utm +zone=49 +south +datum=WGS84 +units=m +no_defs');</script>
+        <script src="./resources/functions.js"></script>
+        <script src="./resources/ol.js"></script>
+        <script src="./resources/ol-layerswitcher.js"></script>
+        <script src="resources/photon-geocoder-autocomplete.min.js"></script>
+        <script src="layers/Kecamatan_1.js"></script><script src="layers/PotensiLahanAgrowisata_2.js"></script><script src="layers/KesesuaianLahanKopiArabika_3.js"></script><script src="layers/KesesuaianLahanCarica_4.js"></script><script src="layers/KesesuaianLahanDurian_5.js"></script><script src="layers/KesesuaianLahanKopiRobusta_6.js"></script><script src="layers/KesesuaianLahanTeh_7.js"></script><script src="layers/BatasKecamatan_8.js"></script><script src="layers/JaringanJalan_9.js"></script>
+        <script src="styles/Kecamatan_1_style.js"></script><script src="styles/PotensiLahanAgrowisata_2_style.js"></script><script src="styles/KesesuaianLahanKopiArabika_3_style.js"></script><script src="styles/KesesuaianLahanCarica_4_style.js"></script><script src="styles/KesesuaianLahanDurian_5_style.js"></script><script src="styles/KesesuaianLahanKopiRobusta_6_style.js"></script><script src="styles/KesesuaianLahanTeh_7_style.js"></script><script src="styles/BatasKecamatan_8_style.js"></script><script src="styles/JaringanJalan_9_style.js"></script>
+        <script src="./layers/layers.js" type="text/javascript"></script> 
+        <script src="./resources/Autolinker.min.js"></script>
+        <script src="./resources/qgis2web.js"></script>
+    </body>
+</html>
