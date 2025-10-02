@@ -1109,3 +1109,31 @@ document.addEventListener('DOMContentLoaded', function() {
     if (attributionControl) {
         bottomRightContainerDiv.appendChild(attributionControl);
     }
+
+// Tambahkan control draw
+var drawnItems = new L.FeatureGroup();
+map.addLayer(drawnItems);
+
+var drawControl = new L.Control.Draw({
+    edit: {
+        featureGroup: drawnItems
+    }
+});
+map.addControl(drawControl);
+
+// Event setelah feature dibuat
+map.on('draw:created', function (e) {
+    var layer = e.layer;
+    drawnItems.addLayer(layer);
+    alert("Fitur baru berhasil dibuat!");
+});
+map.on('click', function(e) {
+    drawnItems.eachLayer(function(layer) {
+        if (layer instanceof L.Polygon) {
+            var geojson = layer.toGeoJSON();
+            var buffered = turf.buffer(geojson, 500, {units: 'meters'}); // buffer 500 m
+            L.geoJSON(buffered, {color: 'red'}).addTo(map);
+            alert("Buffer 500m berhasil dibuat!");
+        }
+    });
+});
